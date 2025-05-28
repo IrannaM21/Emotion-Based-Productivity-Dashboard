@@ -1,21 +1,34 @@
-// src/components/SpotifyLogin.jsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { generateCodeChallenge, generateRandomString } from '../utils/pkce';
 
 const CLIENT_ID = '27108992e6d447d08eea4be9d0806a30';
-// const REDIRECT_URI = 'https://emotionbasedproductivity.vercel.app/';
-const REDIRECT_URI = 'http://localhost:3000/';
-
-const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
-const RESPONSE_TYPE = 'token';
+const REDIRECT_URI = 'https://emotiondetection-mu.vercel.app/';
 const SCOPES = 'playlist-read-private';
 
 const SpotifyLogin = () => {
-  const loginUrl = `${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=${RESPONSE_TYPE}&scope=${SCOPES}`;
+  const [authUrl, setAuthUrl] = useState('');
+
+  useEffect(() => {
+    async function generateAuthUrl() {
+      const codeVerifier = generateRandomString(128);
+      localStorage.setItem('code_verifier', codeVerifier);
+      const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+      const url = `https://accounts.spotify.com/authorize?response_type=token&client_id=${CLIENT_ID}&scope=${encodeURIComponent(
+        SCOPES
+      )}&redirect_uri=${encodeURIComponent(
+        REDIRECT_URI
+      )}&code_challenge_method=S256&code_challenge=${codeChallenge}`;
+
+      setAuthUrl(url);
+    }
+
+    generateAuthUrl();
+  }, []);
 
   return (
     <div style={styles.container}>
-      <h3>🎵 Login to Spotify</h3>
-      <a href={loginUrl} style={styles.button}>Login with Spotify</a>
+      <a href={authUrl} style={styles.button}>Login with Spotify</a>
     </div>
   );
 };

@@ -1,62 +1,51 @@
-// components/SpotifyCallback.jsx
 import React, { useEffect } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const clientId = '27108992e6d447d08eea4be9d0806a30';
-const redirectUri = 'https://emotionbasedproductivity.vercel.app/callback';
+const CLIENT_ID = '27108992e6d447d08eea4be9d0806a30';
+const REDIRECT_URI = 'https://emotiondetection-mu.vercel.app/';
+const TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token';
 
 const SpotifyCallback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    async function fetchAccessToken() {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
-      const state = params.get('state');
-      const storedVerifier = localStorage.getItem('code_verifier');
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const codeVerifier = localStorage.getItem('code_verifier');
 
-      if (!code) {
-        navigate('/');
-        return;
-      }
-
-      const body = new URLSearchParams({
-        client_id: clientId,
-        grant_type: 'authorization_code',
-        code: code,
-        redirect_uri: redirectUri,
-        code_verifier: storedVerifier,
-      });
-
+    const fetchAccessToken = async () => {
       try {
-        const response = await fetch('https://accounts.spotify.com/api/token', {
-          method: 'POST',
+        const body = new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: REDIRECT_URI,
+          client_id: CLIENT_ID,
+          code_verifier: codeVerifier,
+        });
+
+        const response = await axios.post(TOKEN_ENDPOINT, body, {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: body.toString(),
         });
 
-        const data = await response.json();
+        const { access_token } = response.data;
+        localStorage.setItem('spotify_access_token', access_token);
 
-        if (data.access_token) {
-          localStorage.setItem('spotify_access_token', data.access_token);
-          // Redirect to homepage or dashboard after login
-          navigate('/');
-        } else {
-          console.error('Failed to get access token:', data);
-          navigate('/');
-        }
-      } catch (error) {
-        console.error('Error fetching access token:', error);
+        // Redirect to home or any other component
         navigate('/');
+      } catch (error) {
+        console.error('Error getting Spotify access token:', error);
       }
-    }
+    };
 
-    fetchAccessToken();
+    if (code && codeVerifier) {
+      fetchAccessToken();
+    }
   }, [navigate]);
 
-  return <div>Loading...</div>;
+  return <div>Authorizing Spotify...</div>;
 };
 
 export default SpotifyCallback;

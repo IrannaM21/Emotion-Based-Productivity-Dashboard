@@ -1,19 +1,34 @@
 // src/components/SpotifyMusicPlayer.jsx
 import React, { useEffect, useState, useContext } from 'react';
 import { EmotionContext } from '../context/EmotionContext';
-import { fetchPlaylistsByEmotion } from '../utils/spotifyApi';
+import { fetchPlaylistsByEmotion, validateSpotifyToken } from '../utils/spotifyApi';
 
 const SpotifyMusicPlayer = () => {
   const { emotion } = useContext(EmotionContext);
   const [playlists, setPlaylists] = useState([]);
   const token = localStorage.getItem('spotify_access_token');
 
+  // ✅ Check if token is valid
+  useEffect(() => {
+    const checkToken = async () => {
+      const isValid = await validateSpotifyToken(token);
+      if (!isValid) {
+        localStorage.removeItem('spotify_access_token');
+        window.location.reload(); // redirect to login
+      }
+    };
+
+    if (token) checkToken();
+  }, [token]);
+
+  // ✅ Fetch playlists based on emotion
   useEffect(() => {
     if (token && emotion) {
       fetchPlaylistsByEmotion(token, emotion).then(setPlaylists);
     }
   }, [token, emotion]);
 
+  // ❌ This must come after all hooks
   if (!token) {
     return (
       <div style={styles.container}>
